@@ -1,0 +1,54 @@
+{
+  "name": "@recoverai/desktop",
+  "private": true,
+  "version": "0.1.0",
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "electron .",
+    "package:dir": "electron-builder --dir",
+    "package:win": "electron-builder --win nsis",
+    "package:mac": "electron-builder --mac dmg"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.pratikshitvas.recoverai",
+    "productName": "RecoverAI",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "renderer/**/*",
+      "package.json",
+      "node_modules/express/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "RecoverAI-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.healthcare-fitness",
+      "extendInfo": {
+        "NSCameraUsageDescription": "RecoverAI uses the camera for an optional on-device movement observation.",
+        "NSMicrophoneUsageDescription": "RecoverAI uses the microphone for optional local speech practice."
+      }
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

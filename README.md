@@ -40,10 +40,13 @@ Set VITE_API_URL in apps/web/.env.local if the API is hosted elsewhere.
 - npm test — pose engine math and confidence tests
 - npm run db:generate — generate Prisma client
 - npm run db:migrate --workspace @recoverai/api — local Prisma migration
+- npm run dev:desktop — Electron development client
+- npm run build:desktop — Windows NSIS installer (Windows host)
+- npm run build:desktop:mac — macOS DMG (macOS host)
 
 ## Data and safety
 
-Use synthetic accounts only while developing. The current MVP is not ready for real patient data or clinical use. It does not yet include email verification, password recovery, encryption-at-rest configuration, external storage, notifications, payment providers, speech transcription, AI chat, clinic administration, native movement assessment, or Electron desktop packaging. Some database models describe future areas, but a schema model alone is not a complete feature.
+Use synthetic accounts only while developing. The current MVP is not ready for real patient data or clinical use. It does not yet include email verification, password recovery, encryption-at-rest configuration, external storage, notifications, payment providers, speech transcription, AI chat, clinic administration, native movement assessment, or an Electron desktop shell using the shared web interface. Some database models describe future areas, but a schema model alone is not a complete feature.
 
 Do not use camera estimates to diagnose, assess strength or muscle tone, change exercises, or make recovery predictions. Exercise instructions and patient-specific plans should come from a qualified therapist. Stop if movement hurts or feels unsafe. Seek urgent medical help for severe pain, sudden weakness, new neurological symptoms, breathing difficulty, or another acute change.
 
@@ -52,3 +55,7 @@ Security controls in this repository do not establish HIPAA, GDPR, or Indian DPD
 ## Android and iOS patient app
 
 Install workspaces from the repository root, configure EXPO_PUBLIC_API_URL in apps/mobile/.env (use your computer's LAN IP for a physical phone; use 10.0.2.2 for an Android emulator), then run npm run dev:mobile. Build JavaScript bundles with npm run build:android or npm run build:ios. The eas.json file includes internal preview and production build profiles. These export commands do not create signed store installers; EAS credentials, signing, and developer accounts are still required. A macOS/Xcode environment is required for local iOS native builds. The mobile camera pose feature is not implemented; use the web client for movement checks.
+
+## Windows and macOS desktop app
+
+The Electron client loads the same React app and API, uses context isolation and a sandboxed renderer, and prompts before camera/microphone access. In development, start PostgreSQL and the API, then start the web client and run npm run dev:desktop. Build a Windows installer with npm run build:desktop on Windows. On macOS, run npm run build:desktop:mac. A macOS developer certificate and notarization are required for signed distribution. The CI job also creates a Linux unpacked desktop build as a packaging smoke check; it does not produce signed Windows/macOS installers.

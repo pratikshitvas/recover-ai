@@ -18,8 +18,10 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/recoverai
       - run: npm run db:generate
       - run: node --check apps/api/src/index.js
+      - run: node --check apps/desktop/main.cjs
+      - run: node --check apps/desktop/preload.cjs
+      - run: node --check scripts/prepare-desktop.mjs
       - run: npm run build:web
       - run: npm run build:android
       - run: npm run build:ios
-      - run: npm run build:android
-      - run: npm run build:ios
+      - run: npm run package:desktop:dir

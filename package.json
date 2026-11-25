@@ -14,7 +14,12 @@
     "db:generate": "npm run db:generate --workspace @recoverai/api",
     "dev:mobile": "npm run start --workspace @recoverai/mobile",
     "build:android": "npm run export:android --workspace @recoverai/mobile",
-    "build:ios": "npm run export:ios --workspace @recoverai/mobile"
+    "build:ios": "npm run export:ios --workspace @recoverai/mobile",
+    "dev:desktop": "npm run dev --workspace @recoverai/desktop",
+    "prepare:desktop": "node scripts/prepare-desktop.mjs",
+    "package:desktop:dir": "npm run build:web && npm run prepare:desktop && npm run package:dir --workspace @recoverai/desktop",
+    "build:desktop": "npm run build:web && npm run prepare:desktop && npm run package:win --workspace @recoverai/desktop",
+    "build:desktop:mac": "npm run build:web && npm run prepare:desktop && npm run package:mac --workspace @recoverai/desktop"
   },
   "engines": {
     "node": ">=22.13"
