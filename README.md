@@ -12,13 +12,14 @@ This repository currently provides a runnable responsive web application and Pos
 - Patient exercise plan, self-reported completed-session log, appointment list, progress history, patient-approved therapist connections, data export, account deletion, and camera consent management.
 - Optional browser camera movement check using MediaPipe Pose Landmarker. Pose is processed locally; video is not uploaded or saved. The angle calculations use visible landmarks and reject low-confidence observations. Successful checks use a backend-owned allowance of two, with transaction locking and idempotency.
 - Optional browser-only microphone recording and playback. Audio is not uploaded, scored, or saved to an account.
+- Expo Android/iOS patient companion with SecureStore sessions, assigned exercises, session logging, progress, and appointments. Therapist accounts remain on the web dashboard. Native movement assessment is not enabled; the camera pose check is currently web-only.
 - Deterministic synthetic landmark math tests and CI checks for tests, Prisma schema, and web build.
 
 The camera module uses the CPU delegate. On first use the browser downloads the pose model and WASM files from configured public CDNs; camera frames remain on the device. A browser camera generally requires localhost or HTTPS. These measurements are approximate observations and can be inaccurate due to perspective, framing, lighting, or occlusion. They are not clinical goniometer results.
 
 ## Run on Windows 10/11
 
-Requirements: Node.js 20 or newer and PostgreSQL 14 or newer. Docker is not required.
+Requirements: Node.js 22.13 or newer and PostgreSQL 14 or newer. Docker is not required.
 
 1. Create a PostgreSQL database named recoverai.
 2. Copy apps/api/.env.example to apps/api/.env. Set DATABASE_URL, a random JWT_SECRET with at least 32 characters, and WEB_ORIGIN=http://localhost:5173.
@@ -42,8 +43,12 @@ Set VITE_API_URL in apps/web/.env.local if the API is hosted elsewhere.
 
 ## Data and safety
 
-Use synthetic accounts only while developing. The current MVP is not ready for real patient data or clinical use. It does not yet include email verification, password recovery, account deletion/export, encryption-at-rest configuration, external storage, notifications, payment providers, speech transcription, AI chat, clinic administration, native Android/iOS apps, or Electron desktop packaging. Some database models describe future areas, but a schema model alone is not a complete feature.
+Use synthetic accounts only while developing. The current MVP is not ready for real patient data or clinical use. It does not yet include email verification, password recovery, encryption-at-rest configuration, external storage, notifications, payment providers, speech transcription, AI chat, clinic administration, native movement assessment, or Electron desktop packaging. Some database models describe future areas, but a schema model alone is not a complete feature.
 
 Do not use camera estimates to diagnose, assess strength or muscle tone, change exercises, or make recovery predictions. Exercise instructions and patient-specific plans should come from a qualified therapist. Stop if movement hurts or feels unsafe. Seek urgent medical help for severe pain, sudden weakness, new neurological symptoms, breathing difficulty, or another acute change.
 
 Security controls in this repository do not establish HIPAA, GDPR, or Indian DPDP compliance. A privacy and security review, clinical validation, and legal review are needed before commercial or clinical launch.
+
+## Android and iOS patient app
+
+Install workspaces from the repository root, configure EXPO_PUBLIC_API_URL in apps/mobile/.env (use your computer's LAN IP for a physical phone; use 10.0.2.2 for an Android emulator), then run npm run dev:mobile. Build JavaScript bundles with npm run build:android or npm run build:ios. The eas.json file includes internal preview and production build profiles. These export commands do not create signed store installers; EAS credentials, signing, and developer accounts are still required. A macOS/Xcode environment is required for local iOS native builds. The mobile camera pose feature is not implemented; use the web client for movement checks.

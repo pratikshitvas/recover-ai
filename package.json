@@ -1,1 +1,22 @@
-{"name":"recoverai","private":true,"version":"0.1.0","workspaces":["apps/*"],"scripts":{"dev":"npm run dev --workspace @recoverai/web","dev:web":"npm run dev --workspace @recoverai/web","dev:api":"npm run dev --workspace @recoverai/api","build:web":"npm run build --workspace @recoverai/web","test":"npm run test --workspaces --if-present","db:generate":"npm run db:generate --workspace @recoverai/api"},"engines":{"node":">=20"}}
+{
+  "name": "recoverai",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @recoverai/web",
+    "dev:web": "npm run dev --workspace @recoverai/web",
+    "dev:api": "npm run dev --workspace @recoverai/api",
+    "build:web": "npm run build --workspace @recoverai/web",
+    "test": "npm run test --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspace @recoverai/api",
+    "dev:mobile": "npm run start --workspace @recoverai/mobile",
+    "build:android": "npm run export:android --workspace @recoverai/mobile",
+    "build:ios": "npm run export:ios --workspace @recoverai/mobile"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

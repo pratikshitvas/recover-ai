@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - run: npm install
       - run: npm test
       - run: npx prisma validate --schema apps/api/prisma/schema.prisma
@@ -19,3 +19,7 @@ jobs:
       - run: npm run db:generate
       - run: node --check apps/api/src/index.js
       - run: npm run build:web
+      - run: npm run build:android
+      - run: npm run build:ios
+      - run: npm run build:android
+      - run: npm run build:ios
