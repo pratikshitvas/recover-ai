@@ -5,9 +5,26 @@ datasource db {
   provider = "postgresql"
   url = env("DATABASE_URL")
 }
-enum Role {\n  PATIENT\n  CAREGIVER\n  THERAPIST\n  CLINIC_ADMIN\n  PLATFORM_ADMIN\n}
-enum ConsentType {\n  TERMS\n  PRIVACY\n  CAMERA_AUDIO\n  CAREGIVER\n  AI_PROCESSING\n}
-enum SessionStatus {\n  STARTED\n  COMPLETED\n  CANCELLED\n  FAILED\n}
+enum Role {
+  PATIENT
+  CAREGIVER
+  THERAPIST
+  CLINIC_ADMIN
+  PLATFORM_ADMIN
+}
+enum ConsentType {
+  TERMS
+  PRIVACY
+  CAMERA_AUDIO
+  CAREGIVER
+  AI_PROCESSING
+}
+enum SessionStatus {
+  STARTED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
 model User {
   id String @id @default(cuid())
   email String @unique
