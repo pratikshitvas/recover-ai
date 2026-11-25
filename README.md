@@ -9,7 +9,7 @@ This repository currently provides a runnable responsive web application and Pos
 - Patient and therapist registration/sign-in with password hashing and JWT sessions.
 - Therapist connection requests that patients must accept before records are shared.
 - Therapist-managed exercise library, exercise assignment, and appointment scheduling.
-- Patient exercise plan, self-reported completed-session log, appointment list, and progress history.
+- Patient exercise plan, self-reported completed-session log, appointment list, progress history, patient-approved therapist connections, data export, account deletion, and camera consent management.
 - Optional browser camera movement check using MediaPipe Pose Landmarker. Pose is processed locally; video is not uploaded or saved. The angle calculations use visible landmarks and reject low-confidence observations. Successful checks use a backend-owned allowance of two, with transaction locking and idempotency.
 - Optional browser-only microphone recording and playback. Audio is not uploaded, scored, or saved to an account.
 - Deterministic synthetic landmark math tests and CI checks for tests, Prisma schema, and web build.
