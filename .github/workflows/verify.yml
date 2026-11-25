@@ -16,4 +16,6 @@ jobs:
       - run: npx prisma validate --schema apps/api/prisma/schema.prisma
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/recoverai
+      - run: npm run db:generate
+      - run: node --check apps/api/src/index.js
       - run: npm run build:web
