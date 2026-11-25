@@ -6,8 +6,12 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { existsSync } from 'node:fs';
 
 const app=express(),db=new PrismaClient(),port=Number(process.env.PORT||4000);
+const staticRoot=join(dirname(fileURLToPath(import.meta.url)),'../../web/dist');
 app.use(helmet());
 const allowedOrigins=(process.env.WEB_ORIGIN||'http://localhost:5173').split(',');app.use(cors({origin:(origin,cb)=>{let local=false;try{const u=new URL(origin||'');local=['localhost','127.0.0.1'].includes(u.hostname)&&['http:','https:'].includes(u.protocol)}catch{}if(!origin||allowedOrigins.includes(origin)||local)return cb(null,true);return cb(new Error('Origin not allowed'))}}));app.use(express.json({limit:'32kb'}));
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
@@ -43,6 +47,37 @@ app.post('/therapist/patients/:patientId/exercises',auth,roles('THERAPIST'),wrap
 app.post('/therapist/patients/:patientId/appointments',auth,roles('THERAPIST'),wrap(async(req,res)=>{const p=parse(z.object({startsAt:z.string().datetime(),endsAt:z.string().datetime().optional()}),req.body);if(!p)return res.status(400).json({error:'Enter a valid appointment date and time'});const t=await therapistFor(req.identity.sub);if(!await isAssigned(t.id,req.params.patientId))return res.status(403).json({error:'Assign this patient to your care team first'});const item=await db.appointment.create({data:{patientId:req.params.patientId,startsAt:new Date(p.startsAt),endsAt:p.endsAt?new Date(p.endsAt):undefined}});res.status(201).json({item})}));
 app.get('/therapist/exercises',auth,roles('THERAPIST'),wrap(async(req,res)=>res.json({items:await db.exerciseLibrary.findMany({where:{createdById:req.identity.sub},orderBy:{createdAt:'desc'}})})));
 app.get('/therapist/patients/:patientId/summary',auth,roles('THERAPIST'),wrap(async(req,res)=>{const t=await therapistFor(req.identity.sub);if(!await isAssigned(t.id,req.params.patientId))return res.status(403).json({error:'Permission denied'});const [patient,sessions,assessments,notes]=await Promise.all([db.patient.findUnique({where:{id:req.params.patientId},include:{user:{select:{email:true}}}}),db.rehabilitationSession.findMany({where:{patientId:req.params.patientId},orderBy:{startedAt:'desc'},take:50}),db.movementAssessment.findMany({where:{patientId:req.params.patientId},include:{measurements:true},orderBy:{startedAt:'desc'},take:50}),db.therapistNote.findMany({where:{patientId:req.params.patientId,therapistId:t.id},orderBy:{createdAt:'desc'}})]);res.json({patient,sessions,assessments,notes})}));
+
+const freeAiEmails=new Set((process.env.FREE_AI_EMAILS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean));
+const freeAiUserIds=new Set((process.env.FREE_AI_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean));
+const aiModel=process.env.GEMINI_MODEL||'gemini-2.5-flash';
+const aiRequests=new Map();
+async function aiEligibility(userId){const user=await db.user.findUnique({where:{id:userId},select:{id:true,email:true}});if(!user)return {available:false,consented:false};const consent=await db.consent.findFirst({where:{userId,type:'AI_PROCESSING'},orderBy:{createdAt:'desc'}});const allowed=freeAiEmails.has(user.email.toLowerCase())||freeAiUserIds.has(user.id);return {available:Boolean(process.env.GEMINI_API_KEY&&allowed),consented:Boolean(consent?.granted)}}
+app.get('/ai/status',auth,wrap(async(req,res)=>res.json({...await aiEligibility(req.identity.sub),model:aiModel})));
+app.post('/ai/chat',auth,wrap(async(req,res)=>{
+ const eligibility=await aiEligibility(req.identity.sub);
+ if(!eligibility.available)return res.status(403).json({error:'AI companion access is not enabled for this account yet.'});
+ if(!eligibility.consented)return res.status(403).json({error:'Please review and accept AI processing consent first.'});
+ const p=parse(z.object({messages:z.array(z.object({role:z.enum(['user','assistant']),text:z.string().trim().min(1).max(2000)})).min(1).max(12)}),req.body);
+ if(!p||p.messages.reduce((n,m)=>n+m.text.length,0)>8000)return res.status(400).json({error:'Keep the conversation to 12 short messages (8,000 characters total).'});
+ const now=Date.now(),recent=(aiRequests.get(req.identity.sub)||[]).filter(t=>now-t<15*60*1000);
+ if(recent.length>=20)return res.status(429).json({error:'Please wait a little before sending another message.'});
+ recent.push(now);aiRequests.set(req.identity.sub,recent);
+ const latest=p.messages.at(-1).text;
+ if(/\b(severe pain|sudden weakness|new neurological symptoms?|trouble breathing|difficulty breathing|cannot breathe|chest pain)\b|अचानक कमजोरी|सांस लेने में कठिनाई|सांस नहीं आ रही|तेज दर्द/i.test(latest)){
+  return res.json({reply:'Please stop exercising now. These symptoms may need urgent professional attention. Contact your local emergency service or seek urgent medical care. RecoverAI cannot assess an emergency.'});
+ }
+ const system='You are the RecoverAI rehabilitation companion, an informational assistant and not a doctor or physiotherapist. Only explain therapist-approved exercises and terminology, summarize user-provided session notes, explain recorded progress data, help prepare questions for a qualified therapist, translate approved instructions, organize appointments, and offer general encouragement. Never diagnose, prescribe or change treatment, medication, exercise intensity, repetitions, restrictions, or recovery timelines. Never override a therapist. Do not tell someone to force a painful or restricted movement. For severe pain, sudden weakness, new neurological symptoms, breathing difficulty, chest pain, or other urgent change, tell them to stop and seek urgent professional help. If asked for clinical advice, explain the limit and suggest contacting their therapist or clinician. Keep answers concise and supportive. Do not claim to be a clinician.';
+ try{
+  const response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(aiModel)+':generateContent',{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':process.env.GEMINI_API_KEY},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:p.messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.text}]})),generationConfig:{temperature:0.25,maxOutputTokens:600}}),signal:AbortSignal.timeout(30000)});
+  if(!response.ok){console.error('gemini_request_failed',response.status);return res.status(response.status===429?503:502).json({error:response.status===429?'AI service is busy. Please try again later.':'AI service is temporarily unavailable.'})}
+  const data=await response.json(),reply=data.candidates?.[0]?.content?.parts?.map(x=>x.text||'').join('').trim();
+  if(!reply)return res.status(502).json({error:'AI service returned no usable response.'});
+  res.json({reply});
+ }catch(e){console.error('gemini_request_failed',e?.name||'unknown');res.status(502).json({error:'AI service is temporarily unavailable.'})}
+}));
+
+if(process.env.NODE_ENV==='production'&&existsSync(join(staticRoot,'index.html'))){app.use(express.static(staticRoot));app.get('*',(_req,res)=>res.sendFile(join(staticRoot,'index.html')))}
 app.use((err,_req,res,_next)=>{console.error('request_failed',err?.message||'unknown');res.status(500).json({error:'Unexpected server error'})});
 if(!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32){console.error('Set JWT_SECRET to at least 32 characters in apps/api/.env');process.exit(1)}
 app.listen(port,()=>console.log('RecoverAI API listening on '+port));

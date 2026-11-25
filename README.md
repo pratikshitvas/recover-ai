@@ -10,7 +10,7 @@ This repository currently provides a runnable responsive web application and Pos
 - Therapist connection requests that patients must accept before records are shared.
 - Therapist-managed exercise library, exercise assignment, and appointment scheduling.
 - Patient exercise plan, self-reported completed-session log, appointment list, progress history, patient-approved therapist connections, data export, account deletion, and camera consent management.
-- Optional browser camera movement check using MediaPipe Pose Landmarker. Pose is processed locally; video is not uploaded or saved. The angle calculations use visible landmarks and reject low-confidence observations. Successful checks use a backend-owned allowance of two, with transaction locking and idempotency.
+- Optional Gemini AI companion (server-side API key, account allowlist, per-account free access, and separate AI-processing consent). Optional browser camera movement check using MediaPipe Pose Landmarker. Pose is processed locally; video is not uploaded or saved. The angle calculations use visible landmarks and reject low-confidence observations. Successful checks use a backend-owned allowance of two, with transaction locking and idempotency.
 - Optional browser-only microphone recording and playback. Audio is not uploaded, scored, or saved to an account.
 - Expo Android/iOS patient companion with SecureStore sessions, assigned exercises, session logging, progress, and appointments. Therapist accounts remain on the web dashboard. Native movement assessment is not enabled; the camera pose check is currently web-only.
 - Deterministic synthetic landmark math tests and CI checks for tests, Prisma schema, and web build.
@@ -30,12 +30,14 @@ Requirements: Node.js 22.13 or newer and PostgreSQL 14 or newer. Docker is not r
 5. In separate terminals, run npm run dev:api and npm run dev:web.
 6. Open http://localhost:5173; the API health endpoint is http://localhost:4000/health.
 
-Set VITE_API_URL in apps/web/.env.local if the API is hosted elsewhere.
+Set VITE_API_URL in apps/web/.env.local if the API is hosted elsewhere. Configure GEMINI_API_KEY and FREE_AI_EMAILS only in the API host's private environment variables; never put the Gemini key in VITE_* variables or source control. For a local AI test, add your exact RecoverAI sign-in email to FREE_AI_EMAILS.
 
 ## Scripts
 
 - npm run dev:web — Vite web client
 - npm run dev:api — Express API
+- npm run start — API production server (serves the built web app when NODE_ENV=production)
+- npm run db:push — initialize/update the database schema for first deployment
 - npm run build:web — production web build
 - npm test — pose engine math and confidence tests
 - npm run db:generate — generate Prisma client
@@ -46,11 +48,19 @@ Set VITE_API_URL in apps/web/.env.local if the API is hosted elsewhere.
 
 ## Data and safety
 
-Use synthetic accounts only while developing. The current MVP is not ready for real patient data or clinical use. It does not yet include email verification, password recovery, encryption-at-rest configuration, external storage, notifications, payment providers, speech transcription, AI chat, clinic administration, native movement assessment, or an Electron desktop shell using the shared web interface. Some database models describe future areas, but a schema model alone is not a complete feature.
+Use synthetic accounts only while developing. The current MVP is not ready for real patient data or clinical use. It does not yet include email verification, password recovery, encryption-at-rest configuration, external storage, notifications, payment providers, speech transcription, clinic administration, or native movement assessment. The Gemini companion is informational only, requires explicit per-account allowlisting and AI-processing consent, and is not a clinical service. Some database models describe future areas, but a schema model alone is not a complete feature.
 
 Do not use camera estimates to diagnose, assess strength or muscle tone, change exercises, or make recovery predictions. Exercise instructions and patient-specific plans should come from a qualified therapist. Stop if movement hurts or feels unsafe. Seek urgent medical help for severe pain, sudden weakness, new neurological symptoms, breathing difficulty, or another acute change.
 
 Security controls in this repository do not establish HIPAA, GDPR, or Indian DPDP compliance. A privacy and security review, clinical validation, and legal review are needed before commercial or clinical launch.
+
+## Gemini AI companion
+
+Set GEMINI_API_KEY on the API server and allowlist the exact RecoverAI sign-in email with FREE_AI_EMAILS (comma-separated for multiple users), or use FREE_AI_USER_IDS for database user IDs. The API keeps the secret server-side, sends only the current browser-session chat history after explicit consent, and does not save chat messages. AI access is free inside RecoverAI for allowlisted users; Google API quotas or charges still depend on the key's Google AI Studio account and plan. Use a separate key with suitable quotas and monitoring. No AI access is enabled for other accounts by default.
+
+## Railway deployment
+
+The repository includes a Railway configuration for a single web/API service. Provision a PostgreSQL database, set DATABASE_URL, JWT_SECRET (at least 32 random characters), WEB_ORIGIN to the public app URL, NODE_ENV=production, GEMINI_API_KEY, and FREE_AI_EMAILS in Railway's private variables, then connect this repository and deploy. The API serves the built web app and `/health` is the health check. Initial database setup uses Prisma db push; create and review formal migrations before production clinical use.
 
 ## Android and iOS patient app
 
