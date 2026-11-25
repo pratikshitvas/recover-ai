@@ -1,0 +1,44 @@
+name: RecoverAI desktop installers
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "apps/web/**"
+      - "package.json"
+      - "scripts/prepare-desktop.mjs"
+      - ".github/workflows/desktop-build.yml"
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build:web
+      - run: npm run prepare:desktop
+      - name: Build Windows installer
+        if: matrix.platform == 'windows'
+        run: npm run package:win --workspace @recoverai/desktop
+      - name: Build macOS disk image
+        if: matrix.platform == 'macos'
+        run: npm run package:mac --workspace @recoverai/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RecoverAI-${{ matrix.platform }}
+          path: apps/desktop/release/*
+          if-no-files-found: error
+          retention-days: 14
