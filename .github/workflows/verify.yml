@@ -1,0 +1,19 @@
+name: RecoverAI checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm test
+      - run: npx prisma validate --schema apps/api/prisma/schema.prisma
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/recoverai
+      - run: npm run build:web

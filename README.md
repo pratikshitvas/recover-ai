@@ -1,48 +1,49 @@
 # RecoverAI
 
-**Every movement matters.** RecoverAI is an assistive rehabilitation companion for tracking therapist-approved exercises and patient-reported progress. It is not a diagnostic or treatment system.
+**Every movement matters.** RecoverAI is an assistive rehabilitation companion for patients and therapists. It is not a diagnostic or treatment system.
 
-## Current implementation
+## Working web MVP
 
-This first repository milestone contains a responsive React dashboard and an Express/PostgreSQL API foundation. It includes a Prisma schema for patient/therapist accounts, clinic membership, exercise assignments, rehabilitation sessions, assessments, consent, audit history, billing records, and speech recordings; registration/login with hashed passwords and short-lived JWTs; role checks on patient routes; and endpoints for assigned exercises and the two-check allowance.
+This repository currently provides a runnable responsive web application and PostgreSQL API with:
 
-The dashboard intentionally displays no fabricated measurements or progress. Camera assessment UI and native computer-vision integration are not yet implemented. The listed mobile, desktop, payments, clinic workflows, speech tools, and notification features remain follow-on milestones. Do not use this scaffold with real patient data.
+- Patient and therapist registration/sign-in with password hashing and JWT sessions.
+- Therapist connection requests that patients must accept before records are shared.
+- Therapist-managed exercise library, exercise assignment, and appointment scheduling.
+- Patient exercise plan, self-reported completed-session log, appointment list, and progress history.
+- Optional browser camera movement check using MediaPipe Pose Landmarker. Pose is processed locally; video is not uploaded or saved. The angle calculations use visible landmarks and reject low-confidence observations. Successful checks use a backend-owned allowance of two, with transaction locking and idempotency.
+- Optional browser-only microphone recording and playback. Audio is not uploaded, scored, or saved to an account.
+- Deterministic synthetic landmark math tests and CI checks for tests, Prisma schema, and web build.
 
-## Requirements
+The camera module uses the CPU delegate. On first use the browser downloads the pose model and WASM files from configured public CDNs; camera frames remain on the device. A browser camera generally requires localhost or HTTPS. These measurements are approximate observations and can be inaccurate due to perspective, framing, lighting, or occlusion. They are not clinical goniometer results.
 
-- Node.js 20+
-- PostgreSQL 14+
-- Windows 10/11, macOS, or Linux
+## Run on Windows 10/11
 
-## Run locally
+Requirements: Node.js 20 or newer and PostgreSQL 14 or newer. Docker is not required.
 
-1. Install Node.js and start a local PostgreSQL server.
-2. Copy `apps/api/.env.example` to `apps/api/.env`; set `DATABASE_URL` and a random `JWT_SECRET` of at least 32 characters.
-3. From the repository root run `npm install`.
-4. Initialize the database: `npm run db:generate`, then `npm run db:migrate --workspace @recoverai/api`.
-5. In one terminal run `npm run dev:api`; in another run `npm run dev:web`.
-6. Open http://localhost:5173. API health check: http://localhost:4000/health.
+1. Create a PostgreSQL database named recoverai.
+2. Copy apps/api/.env.example to apps/api/.env. Set DATABASE_URL, a random JWT_SECRET with at least 32 characters, and WEB_ORIGIN=http://localhost:5173.
+3. From PowerShell in the repository root, run npm install.
+4. Generate the Prisma client and initialize the schema:
+   - npm run db:generate
+   - npm run db:migrate --workspace @recoverai/api
+5. In separate terminals, run npm run dev:api and npm run dev:web.
+6. Open http://localhost:5173; the API health endpoint is http://localhost:4000/health.
+
+Set VITE_API_URL in apps/web/.env.local if the API is hosted elsewhere.
 
 ## Scripts
 
-- `npm run dev` / `npm run dev:web`: web app
-- `npm run dev:api`: API server
-- `npm run build:web`: production web build
-- `npm run db:generate`: Prisma client generation
-- `npm run db:migrate --workspace @recoverai/api`: local development migration
+- npm run dev:web — Vite web client
+- npm run dev:api — Express API
+- npm run build:web — production web build
+- npm test — pose engine math and confidence tests
+- npm run db:generate — generate Prisma client
+- npm run db:migrate --workspace @recoverai/api — local Prisma migration
 
-## Safety and privacy
+## Data and safety
 
-No camera or microphone recordings are uploaded by this initial milestone. Camera-estimated angles, when implemented, must be labelled approximate observations and withheld below the confidence threshold. Never use these values as a clinical goniometer measurement. Patient-specific exercise plans belong to qualified therapists. Urgent or newly worsening symptoms require prompt professional assessment. Security scaffolding does not establish HIPAA, GDPR, or Indian DPDP compliance; clinical validation and privacy/legal review are required before commercial or clinical launch.
+Use synthetic accounts only while developing. The current MVP is not ready for real patient data or clinical use. It does not yet include email verification, password recovery, account deletion/export, encryption-at-rest configuration, external storage, notifications, payment providers, speech transcription, AI chat, clinic administration, native Android/iOS apps, or Electron desktop packaging. Some database models describe future areas, but a schema model alone is not a complete feature.
 
-## Roadmap
+Do not use camera estimates to diagnose, assess strength or muscle tone, change exercises, or make recovery predictions. Exercise instructions and patient-specific plans should come from a qualified therapist. Stop if movement hurts or feels unsafe. Seek urgent medical help for severe pain, sudden weakness, new neurological symptoms, breathing difficulty, or another acute change.
 
-1. Harden authentication, verification, reset flows, scoped permissions, and audit coverage.
-2. Therapist-authorized exercise plans and patient session logging.
-3. On-device pose detection with confidence-based rejection and synthetic-data unit tests.
-4. Assessment-credit ledger with transactional idempotency and verified payment webhooks.
-5. Native mobile and Electron desktop clients, followed by clinic, speech, accessibility, and security validation.
-
-## License
-
-All rights reserved pending project licensing decision.
+Security controls in this repository do not establish HIPAA, GDPR, or Indian DPDP compliance. A privacy and security review, clinical validation, and legal review are needed before commercial or clinical launch.

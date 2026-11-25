@@ -64,6 +64,7 @@ model ClinicMembership {
 }
 model PatientTherapistAssignment {
   id String @id @default(cuid())
+  approved Boolean @default(false)
   patientId String
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapistId String
