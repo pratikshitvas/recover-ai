@@ -13,7 +13,7 @@ import { existsSync } from 'node:fs';
 const app=express(),db=new PrismaClient(),port=Number(process.env.PORT||4000);
 const staticRoot=join(dirname(fileURLToPath(import.meta.url)),'../../web/dist');
 app.use(helmet());
-const allowedOrigins=(process.env.WEB_ORIGIN||'http://localhost:5173').split(',');app.use(cors({origin:(origin,cb)=>{let local=false;try{const u=new URL(origin||'');local=['localhost','127.0.0.1'].includes(u.hostname)&&['http:','https:'].includes(u.protocol)}catch{}if(!origin||allowedOrigins.includes(origin)||local)return cb(null,true);return cb(new Error('Origin not allowed'))}}));app.use(express.json({limit:'32kb'}));
+const allowedOrigins=(process.env.WEB_ORIGIN||'http://localhost:5173').split(',');app.use(cors({origin:(origin,cb)=>{let local=false,sameHost=false;try{const u=new URL(origin||''),host=(process.env.RENDER_EXTERNAL_HOSTNAME||'').toLowerCase();local=['localhost','127.0.0.1'].includes(u.hostname)&&['http:','https:'].includes(u.protocol);sameHost=Boolean(host)&&u.hostname.toLowerCase()===host}catch{}if(!origin||allowedOrigins.includes(origin)||local||sameHost)return cb(null,true);return cb(new Error('Origin not allowed'))}}));app.use(express.json({limit:'32kb'}));
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const sign=u=>jwt.sign({sub:u.id,role:u.role},process.env.JWT_SECRET,{expiresIn:'2h',issuer:'recoverai'});
 const roles=(...allowed)=>(req,res,next)=>allowed.includes(req.identity.role)?next():res.status(403).json({error:'Permission denied'});
